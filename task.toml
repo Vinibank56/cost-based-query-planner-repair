@@ -1,10 +1,10 @@
-schema_version = "1.0"
-version = "1.0"
+schema_version = "1.4"
 
 artifacts = ["/app"]
 
 [task]
-name = "cost-based-query-planner-repair"
+name = "odyssey/cost-based-query-planner-repair"
+version = "1.0.0"
 description = "Repair a broken cost-based SQL join planner that must enumerate valid join permutations, apply the scan/join cost model, and select the minimum-cost left-deep execution plan."
 
 [metadata]
@@ -26,11 +26,11 @@ conflicts_of_interest = "None"
 [verifier]
 timeout_sec = 600.0
 environment_mode = "shared"
-network_mode = "none"
+network_mode = "no-network"
 
 [agent]
 timeout_sec = 7200.0
-network_mode = "none"
+network_mode = "no-network"
 
 [environment]
 build_timeout_sec = 600.0
@@ -38,4 +38,9 @@ cpus = 2
 memory_mb = 2048
 storage_mb = 4096
 gpus = 0
-network_mode = "none"
+network_mode = "no-network"
+mcp_servers = []
+
+[verifier.env]
+
+[solution.env]
