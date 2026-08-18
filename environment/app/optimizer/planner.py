@@ -1,66 +1,43 @@
-"""Cost-based query planner (reference implementation)."""
+"""Cost-based query planner (broken seed ? repair required)."""
 
 from __future__ import annotations
 
-import itertools
-
 from optimizer.catalog import TableStats
-from optimizer.cost import DEFAULT_SELECTIVITY, join_cost, output_rows, scan_cost
+from optimizer.cost import scan_cost
 from optimizer.plan import Plan
-from optimizer.query import Query, connected
+from optimizer.query import Query
 
-
-def _is_valid_join_order(order: tuple[str, ...], query: Query) -> bool:
-    if set(order) != set(query.tables):
-        return False
-    joined = {order[0]}
-    for table in order[1:]:
-        if not any(connected(table, other, query.joins) for other in joined):
-            return False
-        joined.add(table)
-    return True
-
-
-def _cost_for_order(order: tuple[str, ...], catalog: dict[str, TableStats]) -> float:
-    first = order[0]
-    rows = catalog[first].row_count
-    total = scan_cost(catalog[first])
-    for table in order[1:]:
-        stats = catalog[table]
-        total += scan_cost(stats)
-        total += join_cost(rows, stats.row_count, DEFAULT_SELECTIVITY)
-        rows = output_rows(rows, stats.row_count, DEFAULT_SELECTIVITY)
-    return total
+# BUG: should use DEFAULT_SELECTIVITY (0.1) from cost.py
+_BROKEN_SELECTIVITY = 1.0
 
 
 def plan_query(query: Query, catalog: dict[str, TableStats]) -> Plan:
-    """Select minimum-cost left-deep join order over all valid permutations."""
+    """Select a join order ? seed implementation is incorrect."""
     for table in query.tables:
         if table not in catalog:
             raise ValueError(f"unknown table: {table}")
 
-    best_order: tuple[str, ...] | None = None
-    best_cost = float("inf")
-    explored = 0
+    # BUG: alphabetical order only; no permutation search or connectivity check
+    order = tuple(sorted(query.tables))
 
-    for perm in itertools.permutations(query.tables):
-        if not _is_valid_join_order(perm, query):
-            continue
-        explored += 1
-        cost = _cost_for_order(perm, catalog)
-        if cost < best_cost:
-            best_cost = cost
-            best_order = perm
+    rows = catalog[order[0]].row_count
+    # BUG: skips scan cost for the first table in the join order
+    total = 0.0
 
-    if best_order is None:
-        raise ValueError("no valid join order for query graph")
+    for table in order[1:]:
+        stats = catalog[table]
+        total += scan_cost(stats)
+        # BUG: additive join cost instead of left_rows * right_rows * selectivity
+        total += rows + stats.row_count
+        # BUG: additive row growth instead of multiplicative selectivity model
+        rows = rows + stats.row_count
 
     return Plan(
-        join_order=best_order,
-        estimated_cost=best_cost,
+        join_order=order,
+        estimated_cost=total,
         audit={
-            "plans_explored": explored,
-            "selectivity": DEFAULT_SELECTIVITY,
+            "plans_explored": 1,
+            "selectivity": _BROKEN_SELECTIVITY,
             "algorithm": "left_deep_permutation",
         },
     )
