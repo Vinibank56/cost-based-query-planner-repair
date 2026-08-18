@@ -1,0 +1,41 @@
+schema_version = "1.0"
+version = "1.0"
+
+artifacts = ["/app"]
+
+[task]
+name = "cost-based-query-planner-repair"
+description = "Repair a broken cost-based SQL join planner that must enumerate valid join permutations, apply the scan/join cost model, and select the minimum-cost left-deep execution plan."
+
+[metadata]
+name = "cost-based-query-planner-repair"
+author_name = "Vincent Onuegbunam"
+author_email = "onuegbunamvincent@gmail.com"
+author_organization = ""
+difficulty_explanation = "The seed planner sorts tables alphabetically instead of searching permutations, skips the first scan cost, uses additive join costs and row estimates, and hard-codes selectivity to 1.0. Agents must read instruction.md, treat cost.py and query.py as canonical, and implement full left-deep permutation search with connectivity validation. Fixing one bug still fails held-out cases: unpublished catalog sizes, four-table chains, disconnected graphs, anti-greedy star queries, and equality against a sealed spec reference the agent never sees."
+solution_explanation = "solution/solve.sh installs the reference planner.py which enumerates all valid join permutations, validates connectivity at each step, costs left-deep plans using scan_cost and join_cost with DEFAULT_SELECTIVITY (0.1), tracks multiplicative output_rows between joins, and returns the minimum-cost plan with a complete audit block. The script runs the full visible + hidden pytest suite before grading."
+verification_explanation = "tests/test.sh runs pytest over test_visible.py (5 self-check cases), test_hidden.py (chain/star edge cases, unpublished parametrized queries, disconnected graph), test_behavior_hidden.py (anti-greedy, selectivity audit, connectivity), test_statistical_hidden.py (cost decomposition, spec-reference matrix, product selectivity), and test_edge_hidden.py (tie-breaking, single-table scan). Sealed spec_reference.py and invariants.py enforce behavior beyond visible literals. Binary scoring."
+domain = "systems"
+field = "backend"
+subfield = "databases"
+tags = ["debugging", "query-optimizer", "cost-model", "join-ordering", "python", "databases"]
+expert_time_estimate_hours = 3.0
+relevant_experience = "Database engine or query-planner engineering experience with cost-based optimization, join ordering, and cardinality estimation."
+conflicts_of_interest = "None"
+
+[verifier]
+timeout_sec = 600.0
+environment_mode = "shared"
+network_mode = "none"
+
+[agent]
+timeout_sec = 7200.0
+network_mode = "none"
+
+[environment]
+build_timeout_sec = 600.0
+cpus = 2
+memory_mb = 2048
+storage_mb = 4096
+gpus = 0
+network_mode = "none"
