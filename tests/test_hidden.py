@@ -95,3 +95,22 @@ def test_invalid_disconnected_graph_raises(planner):
     }
     with pytest.raises(ValueError, match="no valid join order"):
         planner.plan_query(query, catalog)
+
+
+def test_unpublished_sql_round_trip(planner):
+    from optimizer.parser import parse_simple_sql
+
+    sql = (
+        "SELECT * FROM qp_alpha, qp_beta, qp_gamma "
+        "WHERE qp_alpha.id = qp_beta.id AND qp_alpha.id = qp_gamma.id"
+    )
+    query = parse_simple_sql(sql)
+    catalog = {
+        "qp_alpha": TableStats("qp_alpha", 1800, 1.0),
+        "qp_beta": TableStats("qp_beta", 90, 1.0),
+        "qp_gamma": TableStats("qp_gamma", 360, 1.0),
+    }
+    got = planner.plan_query(query, catalog)
+    expected = plan_query_reference(query, catalog)
+    assert got.join_order == expected.join_order
+    assert got.estimated_cost == pytest.approx(expected.estimated_cost)

@@ -33,6 +33,13 @@ def _cost_for_order(order: tuple[str, ...], catalog: dict[str, TableStats]) -> f
     return total
 
 
+def recompute_left_deep_cost(
+    order: tuple[str, ...], catalog: dict[str, TableStats]
+) -> float:
+    """Stepwise cost for a fixed join order — used by behavioral verifiers."""
+    return _cost_for_order(order, catalog)
+
+
 def plan_query_reference(query: Query, catalog: dict[str, TableStats]) -> Plan:
     for table in query.tables:
         if table not in catalog:

@@ -35,3 +35,19 @@ def test_single_table_scan_only(planner):
     assert plan.join_order == ("solo",)
     assert plan.estimated_cost == pytest.approx(126.0)
     assert plan.audit["plans_explored"] == 1
+
+
+def test_high_selectivity_trap_would_undercost_intermediate_joins(planner):
+    """Using selectivity 1.0 would under-estimate cost vs the 0.1 contract."""
+    query = Query(
+        tables=("g1", "g2"),
+        joins=(JoinPredicate("g1", "k", "g2", "k"),),
+    )
+    catalog = {"g1": TableStats("g1", 500, 1.0), "g2": TableStats("g2", 500, 1.0)}
+    plan = planner.plan_query(query, catalog)
+    wrong_selectivity_cost = (
+        catalog["g1"].row_count * catalog["g1"].scan_cost_per_row
+        + catalog["g2"].row_count * catalog["g2"].scan_cost_per_row
+        + 500 * 500 * 1.0
+    )
+    assert plan.estimated_cost < wrong_selectivity_cost
